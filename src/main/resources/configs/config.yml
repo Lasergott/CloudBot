@@ -1,0 +1,10 @@
+startUpMessage: CloudBot is now online. :)
+botNickName: CloudBot
+virtualServerID: 1
+serverQueryUserName: YourServerQueryUserName
+serverQueryPassword: YourServerQueryPassword
+teamSpeakServerIP: 127.0.0.1
+firstJoinMessage: 'Hey, {client} and welcome on the TimoCloud Support server! You automatically got assigned the server role User by me. Now, have a nice day! :wink:'
+joinMessage: "Hey, [color=red][b] {client} [/b][color=white] and welcome on the TimoCloud Support server! Have a nice day! ;)"
+defaultGroupID: 81
+userGroupID: 8

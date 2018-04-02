@@ -4,9 +4,11 @@ import cloud.timo.CloudBot.CloudBot;
 import com.github.theholywaffle.teamspeak3.api.event.*;
 import com.github.theholywaffle.teamspeak3.api.wrapper.Channel;
 import com.github.theholywaffle.teamspeak3.api.wrapper.Client;
+import com.github.theholywaffle.teamspeak3.api.wrapper.ServerGroup;
 import com.sun.prism.paint.Color;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static cloud.timo.CloudBot.CloudBot.info;
@@ -54,18 +56,19 @@ public class EventManager {
                 info("The channel " + event.getChannelId() + " were edited. (Channel Description)");
             }
             public void onClientMoved(ClientMovedEvent event) {
-                if (event.getTargetChannelId() == 295) {
+                if (event.getTargetChannelId() == CloudBot.getInstance().getFileManager().getInt("supportWaitRoomID")) {
                     Client client = CloudBot.getInstance().getTeamSpeakManager().getApi().getClientInfo(event.getClientId());
                     MessageManager.sendPrivateMessage(client, "[B]The Staff has been informed![/B]");
                     for (Client clients : CloudBot.getInstance().getTeamSpeakManager().getApi().getClients()) {
-                        if (clients.isInServerGroup(73) || clients.isInServerGroup(74) || clients.isInServerGroup(75) || clients.isInServerGroup(60) || clients.isInServerGroup(6) || clients.isInServerGroup(59)) {
-                            MessageManager.sendPrivateMessage(clients, "[color=RED][B]" + client.getNickname() + "[/B][/COLOR] is waiting in the Support-Channel!");
-                            info(clients.getNickname() + " is waiting in the supportWait-room.");
+                        for (Integer i : CloudBot.getInstance().getTeamSpeakManager().getStaffGroupID()) {
+                            if (clients.isInServerGroup(i)) {
+                                MessageManager.sendPrivateMessage(clients, "[color=RED][B]" + client.getNickname() + "[/B][/COLOR] is waiting in the Support-Channel!");
+                                info(client.getNickname() + " is waiting in the supportWait-room.");
+                            }
                         }
                     }
                 }
             }
-
             public void onChannelCreate(ChannelCreateEvent event) {
                 info("The channel " + event.getChannelId() + " has been created.");
             }
@@ -76,7 +79,6 @@ public class EventManager {
 
             public void onChannelMoved(ChannelMovedEvent event) {
                 info("The channel " + event.getChannelId() + " has been moved.");
-
             }
 
             public void onChannelPasswordChanged(ChannelPasswordChangedEvent event) {

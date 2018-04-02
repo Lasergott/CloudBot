@@ -12,6 +12,9 @@ import org.jline.terminal.TerminalBuilder;
 import java.awt.*;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -34,11 +37,14 @@ public class CloudBot {
     private EventManager eventManager;
     private MessageManager messageManager;
     private FileManager fileManager;
+    private ScheduledExecutorService scheduler;
+    private SupportManager supportManager;
 
     public static void main(String[] args) {
         System.out.println("Loading libraries...");
         getInstance().makeInstances();
         getInstance().setRunning(true);
+        getInstance().scheduleConnecting();
         try {
             waitForCommands();
         } catch (IOException e) {
@@ -55,6 +61,8 @@ public class CloudBot {
         teamSpeakManager = new TeamSpeakManager();
         eventManager = new EventManager();
         messageManager = new MessageManager();
+        scheduler = Executors.newScheduledThreadPool(1);
+        supportManager = new SupportManager();
     }
 
     public static void info(String message) {
@@ -69,6 +77,10 @@ public class CloudBot {
         getInstance().getReader().getTerminal().writer().flush();
         if (getInstance().getLogger() != null) getInstance().getLogger().info(message);
         CloudBot.getInstance().getDataManager().addToLog(message);
+    }
+
+    private void scheduleConnecting() {
+        scheduler.scheduleAtFixedRate(CloudBot.getInstance().getSupportManager()::openSupport, 0, 1, TimeUnit.SECONDS);
     }
 
     public static void severe(String message) {
@@ -174,5 +186,33 @@ public class CloudBot {
 
     public FileManager getFileManager() {
         return fileManager;
+    }
+
+    public void setScheduler(ScheduledExecutorService scheduler) {
+        this.scheduler = scheduler;
+    }
+
+    public void setMessageManager(MessageManager messageManager) {
+        this.messageManager = messageManager;
+    }
+
+    public MessageManager getMessageManager() {
+        return messageManager;
+    }
+
+    public void setCommandManager(ConsoleManager commandManager) {
+        this.commandManager = commandManager;
+    }
+
+    public void setLogger(Logger logger) {
+        this.logger = logger;
+    }
+
+    public SupportManager getSupportManager() {
+        return supportManager;
+    }
+
+    public void setSupportManager(SupportManager supportManager) {
+        this.supportManager = supportManager;
     }
 }

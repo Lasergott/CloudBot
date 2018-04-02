@@ -42,6 +42,12 @@ public class TeamSpeakManager {
                 groups.add(i);
         }
     }
+
+    public List<Integer> getStaffGroupID() {
+        List<Integer> list = (List<Integer>) CloudBot.getInstance().getFileManager().getConfig().get("staffGroups");
+        return list;
+    }
+
     public List<Integer> getGroupIds() {
         return groups;
     }

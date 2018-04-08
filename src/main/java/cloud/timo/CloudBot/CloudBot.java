@@ -9,7 +9,6 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.Executors;
@@ -25,33 +24,26 @@ import static org.jline.builtins.Completers.TreeCompleter.node;
 public class CloudBot {
 
     private static final CloudBot instance = new CloudBot();
-    private LineReader reader;
-    private boolean waitingForCommand = false;
-    private SimpleFormatter simpleFormatter = new SimpleFormatter();
-    private boolean running = true;
-    private Logger logger;
     private ConsoleManager consoleManager;
     private DataManager dataManager;
-    private ConsoleManager commandManager;
     private TeamSpeakManager teamSpeakManager;
     private EventManager eventManager;
     private MessageManager messageManager;
     private FileManager fileManager;
     private ScheduledExecutorService scheduler;
     private SupportManager supportManager;
+    private ClientManager clientManager;
 
     public static void main(String[] args) {
         System.out.println("Loading libraries...");
         getInstance().makeInstances();
-        getInstance().setRunning(true);
         getInstance().scheduleConnecting();
+        getInstance().getConsoleManager().info("TeamSpeakBot is now complete online!");
         try {
-            waitForCommands();
+            CloudBot.getInstance().getConsoleManager().waitForCommands();
         } catch (IOException e) {
-            severe("Error while initializing terminal: ");
             e.printStackTrace();
         }
-        info("TeamSpeakBot is now complete online!");
     }
 
     private void makeInstances() {
@@ -60,159 +52,54 @@ public class CloudBot {
         consoleManager = new ConsoleManager();
         teamSpeakManager = new TeamSpeakManager();
         eventManager = new EventManager();
-        messageManager = new MessageManager();
         scheduler = Executors.newScheduledThreadPool(1);
         supportManager = new SupportManager();
-    }
-
-    public static void info(String message) {
-        if (getInstance().getReader() == null) {
-            System.out.println(TimeUtil.formatTimeConsole() + CloudBot.getInstance().getDataManager().getPrefix() + message);
-            return;
-        }
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.CLEAR);
-        getInstance().getReader().getTerminal().writer().print(TimeUtil.formatTimeConsole() + CloudBot.getInstance().getDataManager().getPrefix() + message + "\n");
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.REDRAW_LINE);
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.REDISPLAY);
-        getInstance().getReader().getTerminal().writer().flush();
-        if (getInstance().getLogger() != null) getInstance().getLogger().info(message);
-        CloudBot.getInstance().getDataManager().addToLog(message);
+        clientManager = new ClientManager();
+        messageManager = new MessageManager();
     }
 
     private void scheduleConnecting() {
-        scheduler.scheduleAtFixedRate(CloudBot.getInstance().getSupportManager()::openSupport, 0, 1, TimeUnit.SECONDS);
-    }
-
-    public static void severe(String message) {
-        if (getInstance().getReader() == null) {
-            System.err.println(CloudBot.getInstance().getDataManager().getPrefix() + message);
-            return;
-        }
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.CLEAR);
-        getInstance().getReader().getTerminal().writer().print(getInstance().getSimpleFormatter().format(new LogRecord(Level.SEVERE, ChatColorUtil.ANSI_RED + message + ChatColorUtil.ANSI_RESET)));
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.REDRAW_LINE);
-        if (getInstance().isWaitingForCommand()) getInstance().getReader().callWidget(LineReader.REDISPLAY);
-        getInstance().getReader().getTerminal().writer().flush();
-
-        if (getInstance().getLogger() != null) getInstance().getLogger().severe(message);
-    }
-
-    private static void waitForCommands() throws IOException {
-        TerminalBuilder builder = TerminalBuilder.builder();
-        builder.encoding(Charset.defaultCharset());
-        builder.system(true);
-        Terminal terminal = builder.build();
-        Completer completer = new Completers.TreeCompleter(
-                node("help"),
-                node("info"),
-                node("reload"),
-                node("exit"),
-                node("broadcast")
-        );
-        Parser parser = new DefaultParser();
-        String prompt = "> ";
-        String rightPrompt = null;
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(completer)
-                .parser(parser)
-                .build();
-        getInstance().reader = reader;
-        while (getInstance().running) {
-            getInstance().waitingForCommand = true;
-            String line = null;
-            try {
-                line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
-            } catch (UserInterruptException e) {
-                System.exit(0);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            if (line == null) continue;
-            getInstance().waitingForCommand = false;
-            line = line.trim();
-            if (line.isEmpty()) continue;
-            getInstance().consoleManager.onCommand(line);
-        }
-    }
-
-    public TeamSpeakManager getTeamSpeakManager() {
-        return teamSpeakManager;
-    }
-
-    public ConsoleManager getCommandManager() {
-        return commandManager;
-    }
-
-    public DataManager getDataManager() {
-        return dataManager;
-    }
-
-    public ConsoleManager getConsoleManager() {
-        return consoleManager;
-    }
-
-    public Logger getLogger() {
-        return logger;
-    }
-
-    public boolean isRunning() {
-        return running;
-    }
-
-    public SimpleFormatter getSimpleFormatter() {
-        return simpleFormatter;
-    }
-
-    public boolean isWaitingForCommand() {
-        return waitingForCommand;
-    }
-
-    public LineReader getReader() {
-        return reader;
+        scheduler.scheduleAtFixedRate(CloudBot.getInstance().getClientManager()::checkAFK, 0, 1, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(CloudBot.getInstance().getClientManager()::everySecond, 0, 1, TimeUnit.SECONDS);
     }
 
     public static CloudBot getInstance() {
         return instance;
     }
 
-    public void setRunning(boolean running) {
-        this.running = running;
+    public ConsoleManager getConsoleManager() {
+        return consoleManager;
+    }
+
+    public DataManager getDataManager() {
+        return dataManager;
+    }
+
+    public ConsoleManager getCommandManager() {
+        return consoleManager;
+    }
+
+    public TeamSpeakManager getTeamSpeakManager() {
+        return teamSpeakManager;
     }
 
     public EventManager getEventManager() {
         return eventManager;
     }
 
-    public FileManager getFileManager() {
-        return fileManager;
-    }
-
-    public void setScheduler(ScheduledExecutorService scheduler) {
-        this.scheduler = scheduler;
-    }
-
-    public void setMessageManager(MessageManager messageManager) {
-        this.messageManager = messageManager;
-    }
-
     public MessageManager getMessageManager() {
         return messageManager;
     }
 
-    public void setCommandManager(ConsoleManager commandManager) {
-        this.commandManager = commandManager;
-    }
-
-    public void setLogger(Logger logger) {
-        this.logger = logger;
+    public FileManager getFileManager() {
+        return fileManager;
     }
 
     public SupportManager getSupportManager() {
         return supportManager;
     }
 
-    public void setSupportManager(SupportManager supportManager) {
-        this.supportManager = supportManager;
+    public ClientManager getClientManager() {
+        return clientManager;
     }
 }
